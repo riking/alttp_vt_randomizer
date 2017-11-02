@@ -1,5 +1,8 @@
 <?php namespace ALttP;
 
+use ALttP\Requirement;
+use ALttP\Requirement\RequireLegacyFunc;
+
 /**
  * A logical collection of Locations. Can have special can_enter function that will apply to all locaitons contained,
  * and can_complete function set to validate that the region prize (if set) can be obtained.
@@ -159,10 +162,27 @@ class Region {
 	 * @return bool
 	 */
 	public function canComplete($locations, $items) {
-		if ($this->can_complete) {
+		if ($this->can_complete instanceof Requirement) {
+			return $this->can_complete->isSatisfied($locations, $items);
+		} else if ($this->can_complete) {
 			return call_user_func($this->can_complete, $locations, $items);
 		}
 		return true;
+	}
+	
+	/**
+	 * Get the Requirement object checking if the Region is completable given
+	 * the locations and items available.
+	 * 
+	 * @return Requirement
+	 */
+	public function getCompletionRequirements() {
+		if ($this->can_complete instanceof Requirement) {
+			return $this->can_complete;
+		} else if ($this->can_complete) {
+			return new RequireLegacyFunc($this->can_complete);
+		}
+		return Requirement\RequireNone::getInst();
 	}
 
 	/**
@@ -174,10 +194,21 @@ class Region {
 	 * @return bool
 	 */
 	public function canEnter($locations, $items) {
-		if ($this->can_enter) {
+		if ($this->can_enter instanceof Requirement) {
+			return $this->can_enter->isSatisfied($locations, $items);
+		} else if ($this->can_enter) {
 			return call_user_func($this->can_enter, $locations, $items);
 		}
 		return true;
+	}
+
+	public function getEntryRequirements() {
+		if ($this->can_enter instanceof Requirement) {
+			return $this->can_enter;
+		} else if ($this->can_enter) {
+			return new RequireLegacyFunc($this->can_enter);
+		}
+		return Requirement\RequireNone::getInst();
 	}
 
 	/**

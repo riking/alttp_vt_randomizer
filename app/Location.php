@@ -1,5 +1,6 @@
 <?php namespace ALttP;
 
+use ALttP\Requirement;
 use ALttP\Support\LocationCollection;
 
 /**
@@ -10,7 +11,7 @@ class Location {
 	protected $address;
 	protected $bytes;
 	protected $region;
-	protected $requirement_callback;
+	protected $requirements;
 	protected $fill_callback;
 	protected $item = null;
 
@@ -21,16 +22,16 @@ class Location {
 	 * @param array $address Addresses in ROM to write to
 	 * @param array|null $bytes data to write back to Item addresses if set
 	 * @param Region|null $region Region that this Location belongs to
-	 * @param Callable|null $requirement_callback callback function when determining if Location is accessable
+	 * @param Requirement|null $requirements Requirements to determine if Location is accessable
 	 *
 	 * @return void
 	 */
-	public function __construct($name, $address, $bytes = null, Region $region = null, Callable $requirement_callback = null) {
+	public function __construct($name, $address, $bytes = null, Region $region = null, Requrement $requirements = null) {
 		$this->name = $name;
 		$this->address = (array) $address;
 		$this->bytes = (array) $bytes;
 		$this->region = $region;
-		$this->requirement_callback = $requirement_callback;
+		$this->requirements = $requirements;
 	}
 
 	/**
@@ -77,27 +78,58 @@ class Location {
 	 * @return bool
 	 */
 	public function canAccess($items, $locations = null) {
-		if (!$this->region->canEnter($locations ?? $this->region->getWorld()->getLocations(), $items)) {
+		$locations = $locations ?? $this->region->getWorld()->getLocations();
+		if (!$this->region->canEnter($locations, $items)) {
 			return false;
 		}
 
-		if (!$this->requirement_callback || call_user_func($this->requirement_callback, $locations ?? $this->region->getWorld()->getLocations(), $items)) {
+		if ($this->requirements instanceof Requirement) {
+			return $this->requirements->isSatisfied($locations, $items);
+		} else if ($this->requirements) {
+			return call_user_func($this->requirements, $locations, $items);
+		} else {
 			return true;
 		}
-
-		return false;
 	}
 
 	/**
-	 * Set the requirements callback for this Lcation, closure should take 2 arguments, $locations and $items and
+	 * Determine if Link can access this location given his Items collected.
+	 * Returns a RequireAll of the region requirements and this specific location.
+	 * 
+	 * @return Requirement
+	 */
+	public function getAccessRequirements() {
+		if ($this->requirements instanceof Requirement) {
+			return new Requirement\RequireAll([
+				$this->region->getEntryRequirements(),
+				$this->requirements,
+			]);
+		} else if ($this->requirements) {
+			return new Requirement\RequireAll([
+				$this->region->getEntryRequirements(),
+				new Requirement\RequireLegacyFunc($this->requirements),
+			]);
+		} else {
+			return $this->region->getEntryRequirements();
+		}
+	}
+
+	/**
+	 * Set the requirements callback for this Location.
+	 *
+	 * An object of type \ALttP\Requrement is preferred.
+	 * A passed closure should take 2 arguments, $locations and $items and
 	 * return boolean.
 	 *
-	 * @param Callable $callback function to be called when checking if Location can have Item
+	 * @param mixed $requirements Callable or Requirements to be called when checking if Location is accessible
 	 *
 	 * @return $this
 	 */
-	public function setRequirements(Callable $callback) {
-		$this->requirement_callback = $callback;
+	public function setRequirements($requirements) {
+		if (!($requirements instanceof Requirement) && !is_callable($requirements)) {
+			throw new \Error("setRequirements() must be passed a closure or a Requirement, got ");
+		}
+		$this->requirements = $requirements;
 		return $this;
 	}
 

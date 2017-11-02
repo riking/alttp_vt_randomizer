@@ -3,6 +3,7 @@
 use ALttP\Item;
 use ALttP\Location;
 use ALttP\Region;
+use ALttP\Requirement;
 use ALttP\Support\LocationCollection;
 use ALttP\World;
 
@@ -78,39 +79,55 @@ class DesertPalace extends Region {
 	 * @return $this
 	 */
 	public function initNoMajorGlitches() {
-		$this->locations["[dungeon-L2-B1] Desert Palace - big chest"]->setRequirements(function($locations, $items) {
-			return $items->has('BigKeyP2');
-		})->setFillRules(function($item, $locations, $items) {
+		$this->locations["[dungeon-L2-B1] Desert Palace - big chest"]->setRequirements(
+			new Requirement('BigKeyP2')
+		)->setFillRules(function($item, $locations, $items) {
 			return $item != Item::get('BigKeyP2');
 		});
 
-		$this->locations["[dungeon-L2-B1] Desert Palace - Big key room"]->setRequirements(function($locations, $items) {
-			return $items->has('KeyP2');
-		})->setFillRules(function($item, $locations, $items) {
+		$this->locations["[dungeon-L2-B1] Desert Palace - Big key room"]->setRequirements(
+			new Requirement('KeyP2')
+		)->setFillRules(function($item, $locations, $items) {
 			return $item != Item::get('KeyP2');
 		});
 
-		$this->locations["[dungeon-L2-B1] Desert Palace - compass room"]->setRequirements(function($locations, $items) {
-			return $items->has('KeyP2');
-		})->setFillRules(function($item, $locations, $items) {
+		$this->locations["[dungeon-L2-B1] Desert Palace - compass room"]->setRequirements(
+			new Requirement('KeyP2')
+		)->setFillRules(function($item, $locations, $items) {
 			return $item != Item::get('KeyP2');
 		});
 
-		$this->locations["[dungeon-L2-B1] Desert Palace - Small key room"]->setRequirements(function($locations, $items) {
-			return $items->has('PegasusBoots');
-		});
+		$this->locations["[dungeon-L2-B1] Desert Palace - Small key room"]->setRequirements(
+			new Requirement('PegasusBoots')
+		);
+		
+		$this->can_enter = new Requirement\RequireAny([
+			'BookOfMudora',
+			new Requirement\RequireAll([
+				'MagicMirror',
+				Requirement::get('canLiftDarkRocks'),
+				Requirement::get('canFly'),
+			])
+		]);
 
-		$this->can_complete = function($locations, $items) {
-			if (in_array(config('game-mode'), ['open', 'swordless']) && !($items->hasSword() || $items->has('Hammer')
-					|| $items->canShootArrows() || $items->has('FireRod') || $items->has('IceRod')
-					|| $items->has('CaneOfByrna') || $items->has('CaneOfSomaria'))) {
-				return false;
-			}
+		$completion_needed = [
+			&$this->can_enter, // (!) reference
+			Requirement::get('canLiftRocks'),
+			Requirement::get('canLightTorches'),
+			'BigKeyP2',
+			'KeyP2',
+		];
 
-			return $this->canEnter($locations, $items)
-				&& $items->canLiftRocks() && $items->canLightTorches()
-				&& $items->has('BigKeyP2') && $items->has('KeyP2');
-		};
+		if (in_array(config('game-mode'), ['open', 'swordless'])) {
+			array_push($completion_needed, new Requirement\RequireAny([
+				Requirement::get('hasSword'),
+				Requirement::get('canShootArrows'),
+				'Hammer', 'FireRod', 'IceRod',
+				'CaneOfByrna', 'CaneOfSomaria',
+			]));
+		}
+
+		$this->can_complete = new Requirement\RequireAll($completion_needed);
 
 		$this->locations["Heart Container - Lanmolas"]->setRequirements($this->can_complete)
 			->setFillRules(function($item, $locations, $items) {
@@ -122,11 +139,6 @@ class DesertPalace extends Region {
 
 				return !in_array($item, [Item::get('KeyP2'), Item::get('BigKeyP2')]);
 			});
-
-		$this->can_enter = function($locations, $items) {
-			return $items->has('BookOfMudora')
-				|| ($items->has('MagicMirror') && $items->canLiftDarkRocks() && $items->canFly());
-		};
 
 		$this->prize_location->setRequirements($this->can_complete);
 
@@ -142,11 +154,11 @@ class DesertPalace extends Region {
 	public function initOverworldGlitches() {
 		$this->initNoMajorGlitches();
 
-		$this->can_enter = function($locations, $items) {
-			return $items->has('BookOfMudora')
-				|| $items->has('PegasusBoots')
-				|| ($items->has('MagicMirror') && $this->world->getRegion('Mire')->canEnter($locations, $items));
-		};
+		$this->can_enter = new Requirement\RequireAny([
+			'BookOfMudora',
+			'PegasusBoots',
+			new Requirement\RequireAll(['MagicMirror', $this->world->getRegion('Mire')->getEntryRequirements()]),
+		]);
 
 		return $this;
 	}

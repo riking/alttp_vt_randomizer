@@ -3,6 +3,7 @@
 use ALttP\Item;
 use ALttP\Location;
 use ALttP\Region;
+use ALttP\Requirement;
 use ALttP\Support\LocationCollection;
 use ALttP\World;
 
@@ -75,20 +76,21 @@ class EasternPalace extends Region {
 	 * @return $this
 	 */
 	public function initNoMajorGlitches() {
-		$this->locations["[dungeon-L1-1F] Eastern Palace - big chest"]->setRequirements(function($locations, $items) {
-			return $items->has('BigKeyP1');
-		})->setFillRules(function($item, $locations, $items) {
+		$this->locations["[dungeon-L1-1F] Eastern Palace - big chest"]->setRequirements(
+			new Requirement('BigKeyP1')
+		)->setFillRules(function($item, $locations, $items) {
 			return $item != Item::get('BigKeyP1');
 		});
 
-		$this->locations["[dungeon-L1-1F] Eastern Palace - Big key"]->setRequirements(function($locations, $items) {
-			return $items->has('Lamp');
-		});
+		$this->locations["[dungeon-L1-1F] Eastern Palace - Big key"]->setRequirements(
+			new Requirement('Lamp')
+		);
 
-		$this->can_complete = function($locations, $items) {
-			return $items->canShootArrows()
-				&& $items->has('Lamp') && $items->has('BigKeyP1');
-		};
+		$this->can_complete = new Requirement\RequireAll([
+			Requirement::get('canShootArrows'),
+			'Lamp',
+			'BigKeyP1',
+		]);
 
 		$this->locations["Heart Container - Armos Knights"]->setRequirements($this->can_complete)
 			->setFillRules(function($item, $locations, $items) {
