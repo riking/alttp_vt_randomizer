@@ -3,6 +3,7 @@
 use ALttP\Item;
 use ALttP\Location;
 use ALttP\Region;
+use ALttP\Requirement;
 use ALttP\Support\LocationCollection;
 use ALttP\World;
 
@@ -65,22 +66,36 @@ class HyruleCastleTower extends Region {
 	 * @return $this
 	 */
 	public function initNoMajorGlitches() {
-		$this->can_complete = function($locations, $items) {
-			if (config('game-mode') == 'swordless') {
-				return $this->canEnter($locations, $items)
-					&& ($items->has('Hammer') || $items->hasSword() || $items->has('BugCatchingNet'));
-			}
-
-			return $this->canEnter($locations, $items) && $items->hasSword();
-		};
+		if (config('game-mode') == 'swordless') {
+			$this->can_enter = new Requirement\RequireAll([
+				'Lamp',
+				new Requirement\RequireAny([
+					'Cape',
+					Requirement::get('hasUpgradedSword'),
+					'Hammer'
+				])
+			]);
+			$this->can_complete = new Requirement\RequireAll([
+				$this->can_enter,
+				new Requirement\RequireAny([
+					'Hammer', Requirement::get('hasSword'), 'BugCatchingNet'
+				])
+			]);
+		} else {
+			$this->can_enter = new Requirement\RequireAll([
+				'Lamp',
+				new Requirement\RequireAny([
+					'Cape',
+					Requirement::get('hasUpgradedSword')
+				])
+			]);
+			$this->can_complete = new Requirement\RequireAll([
+				$this->can_enter,
+				Requirement::get('hasSword'),
+			]);
+		}
 
 		$this->prize_location->setRequirements($this->can_complete);
-
-		$this->can_enter = function($locations, $items) {
-			return $items->has('Lamp') && ($items->has('Cape')
-				|| $items->hasUpgradedSword()
-				|| (config('game-mode') == 'swordless' && $items->has('Hammer')));
-		};
 
 		return $this;
 	}
