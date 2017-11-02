@@ -32,8 +32,7 @@ class RequireAll extends Requirement {
             }
         }
         return array(
-            "op" => "all",
-            "of" => $ary,
+            "all" => $ary,
         );
     }
 }

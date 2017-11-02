@@ -22,7 +22,6 @@ class RequireItemLocation extends Requirement {
 
     public function as_json() {
         return array(
-            "op" => "item_in_location",
             "item" => $this->required,
             "locations" => $this->locations,
         );

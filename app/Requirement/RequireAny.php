@@ -32,8 +32,7 @@ class RequireAny extends Requirement {
             }
         }
         return array(
-            "op" => "any",
-            "of" => $ary,
+            "any" => $ary,
         );
     }
 }

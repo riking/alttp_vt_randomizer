@@ -21,7 +21,6 @@ class RequireCount extends Requirement {
 
     public function as_json() {
         return array(
-            "op" => "count",
             "item" => $this->required,
             "count" => $this->count,
         );
