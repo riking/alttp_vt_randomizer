@@ -3,6 +3,7 @@
 use ALttP\Item;
 use ALttP\Location;
 use ALttP\Region;
+use ALttP\Requirement;
 use ALttP\Support\LocationCollection;
 use ALttP\World;
 
@@ -120,7 +121,7 @@ class GanonsTower extends Region {
 						"[dungeon-A2-1F] Ganon's Tower - west of teleport room [top left chest]",
 						"[dungeon-A2-1F] Ganon's Tower - west of teleport room [bottom left chest]",
 						"[dungeon-A2-1F] Ganon's Tower - west of teleport room [bottom right chest]",
-					], function($_, $loc) {
+					], function($_, $loc) use ($excludeLocation) {
 						return $loc !== $excludeLocation;
 					}, ARRAY_FILTER_USE_BOTH))
 				]),
@@ -141,7 +142,7 @@ class GanonsTower extends Region {
 						"[dungeon-A2-1F] Ganon's Tower - compass room [top left chest]",
 						"[dungeon-A2-1F] Ganon's Tower - compass room [bottom left chest]",
 						"[dungeon-A2-1F] Ganon's Tower - compass room [bottom right chest]",
-					], function($_, $loc) {
+					], function($_, $loc) use ($excludeLocation) {
 						return $loc !== $excludeLocation;
 					}, ARRAY_FILTER_USE_BOTH))
 				]),
