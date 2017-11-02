@@ -3,6 +3,7 @@
 use ALttP\Item;
 use ALttP\Location;
 use ALttP\Region;
+use ALttP\Requirement;
 use ALttP\Support\LocationCollection;
 use ALttP\World;
 
@@ -72,6 +73,17 @@ class IcePalace extends Region {
 		return $this;
 	}
 
+	private function bigKeyLocation($locations) {
+		return new Requirement\RequireAny([
+			'Hookshot',
+			new Requirement\RequireAll([
+				'KeyD5',
+				new Requirement\RequireItemLocation('BigKeyD5', $locations),
+			]),
+			new Requirement\RequireCount('KeyD5', 2),
+		]);
+	}
+
 	/**
 	 * Initalize the requirements for Entry and Completetion of the Region as well as access to all Locations contained
 	 * within for No Major Glitches
@@ -79,56 +91,64 @@ class IcePalace extends Region {
 	 * @return $this
 	 */
 	public function initNoMajorGlitches() {
-		$this->locations["[dungeon-D5-B1] Ice Palace - Big Key room"]->setRequirements(function($locations, $items) {
-			return $items->has('Hammer') && $items->canLiftRocks()
-				&& ($items->has('Hookshot')
-					|| ($locations->itemInLocations(Item::get('BigKeyD5'), [
-							"[dungeon-D5-B2] Ice Palace - map room",
-							"[dungeon-D5-B3] Ice Palace - spike room",
-						]) && $items->has('KeyD5'))
-					|| $items->has('KeyD5', 2))
-				&& ($items->has('Hookshot') || $items->has('CaneOfByrna') || $items->has('Cape'));
-		});
+		$this->locations["[dungeon-D5-B1] Ice Palace - Big Key room"]->setRequirements(
+			new Requirement\RequireAll([
+				'Hammer',
+				Requirement::get('canLiftRocks'),
+				$this->bigKeyLocation([
+					"[dungeon-D5-B2] Ice Palace - map room",
+					"[dungeon-D5-B3] Ice Palace - spike room",
+				]),
+				new Requirement\RequireAny(['Hookshot', 'CaneOfByrna', 'Cape']),
+			])
+		);
 
-		$this->locations["[dungeon-D5-B2] Ice Palace - map room"]->setRequirements(function($locations, $items) {
-			return $items->has('Hammer') && $items->canLiftRocks()
-				&& ($items->has('Hookshot')
-					|| ($locations->itemInLocations(Item::get('BigKeyD5'), [
-							"[dungeon-D5-B3] Ice Palace - spike room",
-							"[dungeon-D5-B1] Ice Palace - Big Key room",
-						]) && $items->has('KeyD5'))
-					|| $items->has('KeyD5', 2))
-				&& ($items->has('Hookshot') || $items->has('CaneOfByrna') || $items->has('Cape'));
-		});
+		$this->locations["[dungeon-D5-B2] Ice Palace - map room"]->setRequirements(
+			new Requirement\RequireAll([
+				'Hammer',
+				Requirement::get('canLiftRocks'),
+				$this->bigKeyLocation([
+					"[dungeon-D5-B3] Ice Palace - spike room",
+					"[dungeon-D5-B1] Ice Palace - Big Key room",
+				]),
+				new Requirement\RequireAny(['Hookshot', 'CaneOfByrna', 'Cape']),
+			])
+		);
 
-		$this->locations["[dungeon-D5-B3] Ice Palace - spike room"]->setRequirements(function($locations, $items) {
-			return ($items->has('Hookshot')
-					|| ($locations->itemInLocations(Item::get('BigKeyD5'), [
-							"[dungeon-D5-B2] Ice Palace - map room",
-							"[dungeon-D5-B1] Ice Palace - Big Key room",
-						]) && $items->has('KeyD5'))
-					|| $items->has('KeyD5', 2))
-				&& ($items->has('Hookshot') || $items->has('CaneOfByrna') || $items->has('Cape'));
-		});
+		$this->locations["[dungeon-D5-B3] Ice Palace - spike room"]->setRequirements(
+			new Requirement\RequireAll([
+				/* does NOT require Hammer and lifting rocks */
+				$this->bigKeyLocation([
+					"[dungeon-D5-B1] Ice Palace - Big Key room",
+					"[dungeon-D5-B2] Ice Palace - map room",
+				]),
+				new Requirement\RequireAny(['Hookshot', 'CaneOfByrna', 'Cape']),
+			])
+		);
 
-		$this->locations["[dungeon-D5-B4] Ice Palace - above Blue Mail room"]->setRequirements(function($locations, $items) {
-			return $items->canMeltThings();
-		});
+		$this->locations["[dungeon-D5-B4] Ice Palace - above Blue Mail room"]->setRequirements(
+			Requirement::get('canMeltThings')
+		);
 
-		$this->locations["[dungeon-D5-B5] Ice Palace - big chest"]->setRequirements(function($locations, $items) {
-			return $items->has('BigKeyD5');
-		})->setFillRules(function($item, $locations, $items) {
+		$this->locations["[dungeon-D5-B5] Ice Palace - big chest"]->setRequirements(
+			new Requirement('BigKeyD5')
+		)->setFillRules(function($item, $locations, $items) {
 			return $item != Item::get('BigKeyD5');
 		});
 
-		$this->can_complete = function($locations, $items) {
-			return $this->canEnter($locations, $items)
-				&& $items->has('Hammer') && $items->canMeltThings() && $items->canLiftRocks()
-				&& $items->has('BigKeyD5') && (
-					($items->has('CaneOfSomaria') && $items->has('KeyD5'))
-					|| $items->has('KeyD5', 2)
-				);
-		};
+		$this->can_complete = new Requirement\RequireAll([
+			&$this->can_enter, // reference
+			'Hammer',
+			Requirement::get('canMeltThings'),
+			Requirement::get('canLiftRocks'),
+			'BigKeyD5',
+			new Requirement\RequireAny([
+				new Requirement\RequireAll([
+					'CaneOfSomaria', 'KeyD5'
+				]),
+				new Requirement\RequireCount('KeyD5', 2),
+			]),
+		]);
 
 		$this->locations["Heart Container - Kholdstare"]->setRequirements($this->can_complete)
 			->setFillRules(function($item, $locations, $items) {
@@ -146,10 +166,11 @@ class IcePalace extends Region {
 			});
 
 
-		$this->can_enter = function($locations, $items) {
-			return $items->has('MoonPearl') && $items->has('Flippers')
-				&& $items->canLiftDarkRocks() && $items->canMeltThings();
-		};
+		$this->can_enter = new Requirement\RequireAll([
+			'MoonPearl', 'Flippers',
+			Requirement::get('canLiftDarkRocks'),
+			Requirement::get('canMeltThings'),
+		]);
 
 		$this->prize_location->setRequirements($this->can_complete);
 
@@ -165,11 +186,14 @@ class IcePalace extends Region {
 	public function initMajorGlitches() {
 		$this->initNoMajorGlitches();
 
-		$this->can_enter = function($locations, $items) {
-			return $items->canLiftDarkRocks()
-				|| ($items->has('MagicMirror') && $items->glitchedLinkInDarkWorld()
-					&& $this->world->getRegion('South Dark World')->canEnter($locations, $items));
-		};
+		$this->can_enter = new Requirement\RequireAny([
+			Requirement::get('canLiftDarkRocks'),
+			new Requirement\RequireAll([
+				'MagicMirror',
+				Requirement::get('glitchedLinkInDarkWorld'),
+				$this->world->getRegion('South Dark World')->getEntryRequirements(),
+			])
+		]);
 
 		$this->prize_location->setRequirements($this->can_complete);
 
@@ -185,9 +209,10 @@ class IcePalace extends Region {
 	public function initOverworldGlitches() {
 		$this->initNoMajorGlitches();
 
-		$this->can_enter = function($locations, $items) {
-			return $items->canLiftDarkRocks() && $items->canMeltThings();
-		};
+		$this->can_enter = new Requirement\RequireAll([
+			Requirement::get('canLiftDarkRocks'),
+			Requirement::get('canMeltThings'),
+		]);
 
 		return $this;
 	}

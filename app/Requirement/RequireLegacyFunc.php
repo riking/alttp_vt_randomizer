@@ -10,7 +10,7 @@ class RequireLegacyFunc extends Requirement {
     }
 
     public function isSatisfied(LocationCollection $locations, ItemCollection $items) {
-        return call_user_func($this->requirement, $locations, $items);
+        return call_user_func($this->required, $locations, $items);
     }
 
     public function as_json() {

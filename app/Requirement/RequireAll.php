@@ -25,7 +25,11 @@ class RequireAll extends Requirement {
     public function as_json() {
         $ary = [];
         foreach ($this->required as $requirement) {
-            array_push($ary, $requirement->as_json());
+            if ($requirement instanceof Requirement) {
+                array_push($ary, $requirement->as_json());
+            } else {
+                array_push($ary, $requirement);
+            }
         }
         return array(
             "op" => "all",
